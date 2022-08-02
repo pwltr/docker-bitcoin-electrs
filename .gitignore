@@ -1,0 +1,5 @@
+bitcoin/*
+!bitcoin.conf
+
+electrs/*
+!electrs.toml

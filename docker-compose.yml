@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+  bitcoin:
+    container_name: bitcoin
+    image: nolim1t/bitcoinknots:v22.0.knots20211108@sha256:a475da2b2ecda55fcc65ea23e1a36c58b2c10549f1c3d3bb3c31c7dda1127354
+    volumes:
+    - ${PWD}/bitcoin:/data/.bitcoin
+    restart: on-failure
+    stop_grace_period: 1m
+    ports:
+    - $BITCOIN_RPC_PORT:$BITCOIN_RPC_PORT
+    - $BITCOIN_P2P_PORT:$BITCOIN_P2P_PORT
+    networks:
+      default:
+        ipv4_address: $BITCOIN_IP
+  electrum:
+    container_name: electrum
+    image: ghcr.io/runcitadel/electrs:v0.9.6@sha256:cf08513b8aa6f081e42ea92c5903d520db2caedbc20aaccf70f844663bbc8646
+    working_dir: /data
+    volumes:
+    - ${PWD}/bitcoin:/bitcoin:ro
+    - ${PWD}/electrs:/data
+    restart: on-failure
+    stop_grace_period: 5m
+    ports:
+    - $ELECTRUM_PORT:$ELECTRUM_PORT
+    networks:
+      default:
+        ipv4_address: $ELECTRUM_IP
+
+networks:
+  default:
+    name: bitcoin_regtest_network
+    ipam:
+      driver: default
+      config:
+      - subnet: $NETWORK_IP/24
