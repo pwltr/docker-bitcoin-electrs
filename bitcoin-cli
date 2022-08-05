@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+CLI_NAME="$(basename $0)"
+CLI_DIR="$(dirname "$(readlink -f "$0")")"
+
+show_help() {
+  cat <<EOF
+Shortcuts for bitcoin-cli.
+Usage: ${CLI_NAME} <command> [options]
+Flags:
+    -h, --help                         Show this help message
+Commands:
+    fund <amount>                      Fund the wallet
+    mine <amount> [--auto]             Generate a number of blocks
+    send <address> <amount>            Send to address with amount
+EOF
+}
+
+if [ -z ${1+x} ]; then
+  command=""
+else
+  command="$1"
+fi
+
+# Mine some blocks
+if [[ "$command" = "mine" ]]; then
+  shift
+
+  if [ -z ${1+x} ]; then
+    echo "Specify the number of blocks to generate."
+    echo "Usage: \`$CLI_NAME $command <amount>\`"
+    exit 1
+  fi
+
+  POSITIONAL_ARGS=()
+
+  auto=false
+
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+    -l | --auto)
+      auto=true
+      shift
+      ;;
+    -* | --*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1")
+      shift
+      ;;
+    esac
+  done
+
+  set -- "${POSITIONAL_ARGS[@]}"
+
+  # default to 5 seconds
+  interval=${2:-5}
+
+  if $auto; then
+    printf "Generating a block every $interval seconds. Press [CTRL+C] to stop...\n\n"
+
+    while true; do
+      docker compose exec bitcoin bitcoin-cli -generate 1
+      sleep $interval
+    done
+  else
+    docker compose exec bitcoin bitcoin-cli -generate "$@"
+  fi
+
+  exit
+fi
+
+# Send a transaction
+if [[ "$command" = "send" ]]; then
+  shift
+
+  if [ -z ${1+x} ]; then
+    echo "Specify the address."
+    echo "Usage: \`$CLI_NAME $command <address> <amount>\`"
+    exit 1
+  fi
+
+  if [ -z ${2+x} ]; then
+    echo "Specify the amount."
+    echo "Usage: \`$CLI_NAME $command <address> <amount>\`"
+    exit 1
+  fi
+
+  docker exec -it bitcoin bitcoin-cli -named sendtoaddress address="$1" amount="$2" fee_rate="25"
+
+  exit
+fi
+
+# Show usage information for this CLI
+if [[ "$command" = "--help" ]] || [[ "$command" = "-h" ]]; then
+  show_help
+  exit
+fi
+
+# If no command specified pass all args straight to bitcoin-cli
+docker compose exec bitcoin bitcoin-cli "$@"
+exit
