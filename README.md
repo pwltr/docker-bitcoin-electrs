@@ -37,6 +37,12 @@ docker exec -it bitcoin bitcoin-cli -named sendtoaddress address="<address>" amo
 docker exec -it bitcoin bitcoin-cli -generate 1
 ```
 
+6. Use the included CLI
+
+```shell
+./bitcoin-cli --help
+```
+
 ## Connections
 
 - Bitcoin RPC: 0.0.0.0:8332
