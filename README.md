@@ -45,6 +45,6 @@ docker exec -it bitcoin bitcoin-cli -generate 1
 
 ## Connections
 
-- Bitcoin RPC: 0.0.0.0:8332
-- Bitcoin P2P: 0.0.0.0:8333
+- Bitcoin RPC: 0.0.0.0:18443
+- Bitcoin P2P: 0.0.0.0:18444
 - Electrum: 0.0.0.0:50001
