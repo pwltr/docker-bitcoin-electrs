@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+source $(dirname $0)/scripts/parse-url.sh
+
 CLI_NAME="$(basename $0)"
 CLI_DIR="$(dirname "$(readlink -f "$0")")"
 
@@ -91,6 +93,31 @@ if [[ "$command" = "send" ]]; then
   fi
 
   docker exec -it bitcoin bitcoin-cli -named sendtoaddress address="$1" amount="$2" fee_rate="25"
+
+  exit
+fi
+
+# Send to a BIP21 URI
+if [[ "$command" = "sendToUri" ]]; then
+  shift
+
+  read -p "Enter a BIP21 URI: " uri
+  echo
+
+  protocol=$(echo "${uri%%:*}")
+
+  if [[ "$protocol" != "bitcoin" ]]; then
+      echo 'Not a BIP21 URI.'
+      exit
+  fi
+
+  # Remove the protocol
+  url_no_protocol=$(echo "${uri/$protocol/}" | cut -d":" -f2-)
+
+  address=$(echo "$url_no_protocol" | grep "?" | cut -d"/" -f1 | rev | cut -d"?" -f2- | rev)
+  amount=$(echo "$url_no_protocol" | cut -d'?' -f 2 | cut -d'=' -f 2 | cut -d'&' -f 1)
+
+  docker exec -it bitcoin bitcoin-cli -named sendtoaddress address="$address" amount="$amount" fee_rate="25"
 
   exit
 fi
