@@ -6,6 +6,7 @@ source $(dirname $0)/scripts/parse-url.sh
 
 CLI_NAME="$(basename $0)"
 CLI_DIR="$(dirname "$(readlink -f "$0")")"
+CONTAINER="bitcoin"
 
 show_help() {
   cat <<EOF
@@ -66,11 +67,11 @@ if [[ "$command" = "mine" ]]; then
     printf "Generating a block every $interval seconds. Press [CTRL+C] to stop...\n\n"
 
     while true; do
-      docker compose exec bitcoin bitcoin-cli -generate 1
+      docker compose exec $CONTAINER bitcoin-cli -generate 1
       sleep $interval
     done
   else
-    docker compose exec bitcoin bitcoin-cli -generate "$@"
+    docker compose exec $CONTAINER bitcoin-cli -generate "$@"
   fi
 
   exit
@@ -92,7 +93,7 @@ if [[ "$command" = "send" ]]; then
     exit 1
   fi
 
-  docker exec -it bitcoin bitcoin-cli -named sendtoaddress address="$1" amount="$2" fee_rate="25"
+  docker compose exec $CONTAINER bitcoin-cli -named sendtoaddress address="$1" amount="$2" fee_rate="25"
 
   exit
 fi
@@ -117,7 +118,30 @@ if [[ "$command" = "sendToUri" ]]; then
   address=$(echo "$url_no_protocol" | grep "?" | cut -d"/" -f1 | rev | cut -d"?" -f2- | rev)
   amount=$(echo "$url_no_protocol" | cut -d'?' -f 2 | cut -d'=' -f 2 | cut -d'&' -f 1)
 
-  docker exec -it bitcoin bitcoin-cli -named sendtoaddress address="$address" amount="$amount" fee_rate="25"
+  docker compose exec $CONTAINER bitcoin-cli -named sendtoaddress address="$address" amount="$amount" fee_rate="25"
+
+  exit
+fi
+
+# Get a new BIP21 URI
+if [[ "$command" = "getInvoice" ]]; then
+  shift
+
+  if [ -z ${1+x} ]; then
+    amount="0.001"
+  else
+    amount="$1"
+  fi
+
+  address=$(docker exec -it bitcoin bitcoin-cli getnewaddress -addresstype bech32 | tr -d '\r')
+  uri="bitcoin:$address?amount=$amount"
+
+  # print URI
+  echo $uri
+
+  # copy to clipboard (MacOS)
+  echo $uri | pbcopy
+  echo "Copied to clipboard."
 
   exit
 fi
@@ -129,5 +153,5 @@ if [[ "$command" = "--help" ]] || [[ "$command" = "-h" ]]; then
 fi
 
 # If no command specified pass all args straight to bitcoin-cli
-docker compose exec bitcoin bitcoin-cli "$@"
+docker compose exec $CONTAINER bitcoin-cli "$@"
 exit
