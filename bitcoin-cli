@@ -18,6 +18,8 @@ Commands:
     fund <amount>                      Fund the wallet
     mine <amount> [--auto]             Generate a number of blocks
     send <address> <amount>            Send to address with amount
+    sendToUri                          Send to a BIP21 URI
+    getInvoice <amount>                Get a new BIP21 URI with a bech32 address
 EOF
 }
 
